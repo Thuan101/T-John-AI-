@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAW PRIME V2 - TRỢ LÝ CỦA SẾP</title>
+  <style>
+    body {margin:0;font-family:'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;}
+    #chat-container {width:100%;max-width:800px;height:100vh;display:flex;flex-direction:column;background:#1e293b;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+    #header {padding:15px;background:#334155;border-bottom:2px solid #ef4444;text-align:center;font-weight:bold;color:#ef4444;letter-spacing:2px;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;}
+    #chat-box {flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;background:#0f172a;}
+    .message {margin:10px 0;line-height:1.5;max-width:85%;padding:12px 16px;border-radius:12px;white-space: pre-wrap;word-break:break-word;font-size:15px;box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+    .message.user {background:#3b82f6;align-self:flex-end;color:#fff;border-bottom-right-radius:2px;}
+    .message.assistant {background:#334155;align-self:flex-start;border-left:4px solid #ef4444;border-bottom-left-radius:2px;}
+    #chat-form {display:flex;padding:15px;background:#1e293b;gap:10px;border-top:1px solid #334155;}
+    #user-input {flex:1;padding:12px;border:1px solid #475569;border-radius:8px;background:#0f172a;color:#fff;font-size:1rem;outline:none;}
+    #user-input:focus {border-color:#ef4444;}
+    .send-btn {padding:10px 20px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-weight:bold;cursor:pointer;transition:0.3s;}
+    .clear-btn {background:transparent;color:#94a3b8;border:1px solid #475569;padding:5px 10px;font-size:10px;cursor:pointer;border-radius:4px;}
+    .status {font-size:12px;color:#94a3b8;margin-bottom:10px;font-style:italic;padding-left:20px;}
+  </style>
+</head>
+<body>
+<div id="chat-container">
+  <div id="header">
+    <span>CLAW PRIME SYSTEM</span>
+    <button class="clear-btn" onclick="clearChat()">XÓA LỊCH SỬ</button>
+  </div>
+  <div id="chat-box"></div>
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Sếp muốn chỉ thị điều gì..." autocomplete="off" required />
+    <button type="submit" class="send-btn">GỬI</button>
+  </form>
+</div>
+<script>
+  const chatBox=document.getElementById('chat-box');
+  const form=document.getElementById('chat-form');
+  const input=document.getElementById('user-input');
+
+  // KEY CỦA SẾP (HÃY THAY MỚI NẾU VẪN LỖI)
+  const API_KEY='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';
+
+  let history=JSON.parse(localStorage.getItem('chatHistory')||'[]');
+
+  function clearChat() {
+    localStorage.removeItem('chatHistory');
+    history = [];
+    render();
+  }
+
+  const render=()=>{
+    chatBox.innerHTML='';
+    history.forEach(m=>{
+      const d=document.createElement('div');
+      d.className='message '+m.role;
+      d.textContent=m.content;
+      chatBox.appendChild(d);
+    });
+    chatBox.scrollTop=chatBox.scrollHeight;
+  };
+
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const txt=input.value.trim();
+    if(!txt) return;
+    
+    history.push({role:'user',content:txt});
+    render();
+    input.value='';
+    
+    const typing=document.createElement('div');
+    typing.className='status';
+    typing.textContent='Đang kết nối não bộ...';
+    chatBox.appendChild(typing);
+    chatBox.scrollTop=chatBox.scrollHeight;
+    
+    try{
+      const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${API_KEY}`,
+          'HTTP-Referer': 'https://claw-prime.local', // Thêm cái này cho chuẩn
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          model:'google/gemini-2.0-flash-001', // Model này cực kỳ ổn định
+          messages:history
+        })
+      });
+      
+      const data=await res.json();
+      
+      if(data.error) {
+         throw new Error(data.error.message);
+      }
+
+      const reply = data.choices[0].message.content;
+      chatBox.removeChild(typing);
+      history.push({role:'assistant',content:reply});
+      localStorage.setItem('chatHistory',JSON.stringify(history));
+      render();
+    }catch(err){
+      console.error(err);
+      typing.style.color = '#ef4444';
+      typing.textContent='Lỗi: Sếp hãy thử tạo API Key mới trên OpenRouter nhé!';
+    }
+  });
+  render();
+</script>
+</body>
+</html>
