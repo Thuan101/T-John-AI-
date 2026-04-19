@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T-JOHN AI | OS VERSION</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --neon: #00f2ff; --bg: #050505; }
+        body { background-color: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; overflow: hidden; height: 100vh; }
+        .neon-glow { text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon); }
+        .neon-border { border: 1px solid var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        
+        /* Khu vực 4: Admin Vault Overlay */
+        #admin-vault { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; backdrop-filter: blur(10px); }
+        
+        /* Khu vực 3: Sandbox (Ẩn mặc định) */
+        #sandbox-container { display: none; position: fixed; top: 10%; left: 10%; width: 80%; height: 80%; z-index: 50; background: white; border-radius: 10px; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        #terminal::-webkit-scrollbar { width: 5px; }
+        #terminal::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 10px; }
+    </style>
+</head>
+<body class="flex flex-col p-4 relative">
+
+    <header class="h-20 flex flex-col items-center justify-center mb-4">
+        <h1 class="text-6xl font-black italic tracking-tighter neon-glow">T THUẬN</h1>
+        <div class="text-[10px] tracking-[0.7em] opacity-60 uppercase mt-1">Advanced AI Agent System</div>
+    </header>
+
+    <main class="flex-grow flex flex-col gap-4 overflow-hidden">
+        <div id="terminal" class="flex-grow neon-border bg-black/40 p-4 rounded-lg overflow-y-auto text-sm leading-relaxed">
+            <div class="text-white/50">[HỆ THỐNG]: T-John OS đang khởi động...</div>
+            <div class="text-white/50">[HỆ THỐNG]: Vui lòng vào Admin Vault để nạp API Key.</div>
+        </div>
+
+        <div class="h-16 flex gap-2">
+            <input type="text" id="userInput" placeholder="Nhập lệnh hoặc yêu cầu..." 
+                class="flex-grow bg-transparent neon-border px-4 py-2 rounded-lg outline-none focus:bg-cyan-950/20 transition-all text-white">
+            <button onclick="handleCommand()" class="neon-border bg-cyan-900/30 px-8 rounded-lg font-bold hover:bg-cyan-500 hover:text-black transition-all">
+                GỬI
+            </button>
+            <button onclick="toggleVault()" class="neon-border px-4 rounded-lg">🔐</button>
+        </div>
+    </main>
+
+    <div id="sandbox-container" class="neon-border">
+        <div class="bg-zinc-800 p-2 flex justify-between items-center text-white text-xs">
+            <span>T-JOHN SANDBOX PREVIEW</span>
+            <button onclick="closeSandbox()" class="text-red-500 font-bold">关闭 [X]</button>
+        </div>
+        <iframe id="sandbox-iframe"></iframe>
+    </div>
+
+    <div id="admin-vault" class="flex items-center justify-center">
+        <div class="w-full max-w-md p-8 neon-border bg-black rounded-2xl text-center">
+            <h2 class="text-2xl font-bold mb-6 italic neon-glow">ADMIN ACCESS</h2>
+            <input type="password" id="vaultPassword" placeholder="Mật khẩu nhà sáng lập..." 
+                class="w-full bg-zinc-900 border border-zinc-700 p-3 rounded-lg mb-4 outline-none text-white text-center">
+            <div id="admin-content" class="hidden text-left">
+                <label class="text-xs text-cyan-500 uppercase">Gemini API Key</label>
+                <input type="password" id="key-gemini" class="w-full bg-zinc-900 border border-zinc-700 p-2 rounded mb-4 text-white">
+                
+                <label class="text-xs text-cyan-500 uppercase">GitHub Token</label>
+                <input type="password" id="key-github" class="w-full bg-zinc-900 border border-zinc-700 p-2 rounded mb-4 text-white">
+                
+                <button onclick="saveKeys()" class="w-full bg-cyan-600 text-black font-bold py-2 rounded hover:bg-white transition-all">LƯU CẤU HÌNH</button>
+            </div>
+            <button onclick="toggleVault()" class="mt-8 text-xs opacity-50 underline">Thoát</button>
+        </div>
+    </div>
+
+    <script>
+        // Mật khẩu Admin mặc định của bạn
+        const MASTER_PASS = "1234"; 
+
+        function log(msg, type = "info") {
+            const terminal = document.getElementById('terminal');
+            const div = document.createElement('div');
+            div.className = type === "error" ? "text-red-500" : "text-cyan-400";
+            div.innerHTML = `<span class="opacity-50">[${new Date().toLocaleTimeString()}]</span> > ${msg}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Xử lý Admin Vault
+        function toggleVault() {
+            const vault = document.getElementById('admin-vault');
+            vault.style.display = vault.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        document.getElementById('vaultPassword').addEventListener('input', (e) => {
+            if(e.target.value === MASTER_PASS) {
+                document.getElementById('admin-content').classList.remove('hidden');
+                e.target.style.display = 'none';
+                log("Quyền Admin đã được xác thực.", "success");
+            }
+        });
+
+        function saveKeys() {
+            localStorage.setItem('gemini_key', document.getElementById('key-gemini').value);
+            localStorage.setItem('github_token', document.getElementById('key-github').value);
+            alert("Đã lưu chìa khóa hệ thống!");
+            toggleVault();
+        }
+
+        // Xử lý Sandbox
+        function openSandbox(htmlCode) {
+            document.getElementById('sandbox-container').style.display = 'block';
+            document.getElementById('sandbox-iframe').srcdoc = htmlCode;
+        }
+
+        function closeSandbox() {
+            document.getElementById('sandbox-container').style.display = 'none';
+        }
+
+        // Xử lý Lệnh
+        function handleCommand() {
+            const input = document.getElementById('userInput');
+            const cmd = input.value.trim();
+            if(!cmd) return;
+
+            log(cmd, "info");
+            
+            // Lệnh đặc biệt (God Mode)
+            if(cmd === "*ACTIVATE_GOD_MODE*") {
+                document.designMode = "on";
+                log("GOD MODE: Đã kích hoạt quyền sửa web trực tiếp.", "success");
+            } else {
+                log("AI đang chờ nạp API Key để xử lý yêu cầu này...", "info");
+            }
+            
+            input.value = "";
+        }
+    </script>
+</body>
+</html>
